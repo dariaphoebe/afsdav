@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ "$DAV_DEV" == "1" ]; then
+    echo "server.modules += ( \"mod_status\", \"mod_accesslog\" )"
+    if [ "X$DAV_USERF" == "X" ]; then
+        echo "status.status-url = \"/server-status-main\""
+        echo "status.config-url = \"/server-config-main\""
+        echo "status.statistics-url = \"/server-stats-main\""
+        echo "accesslog.filename = \"${DAV_BASE}/run/frontend.log\""
+    else
+        echo "status.status-url = \"/server-status-user\""
+        echo "status.config-url = \"/server-config-user\""
+        echo "status.statistics-url = \"/server-stats-user\""
+        echo "accesslog.filename = \"${DAV_BASE}/run/${DAV_USERF}.log\""
+    fi
+fi

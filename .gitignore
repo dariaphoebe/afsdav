@@ -1,0 +1,3 @@
+*.pyc
+run
+src/lighttpd-trunk*

@@ -1,0 +1,33 @@
+AFS WebDAV Gateway
+Joe Presbrey <presbrey@mit.edu>
+
+= Installation =
+
+== 1. Install Kerberos and OpenAFS ==
+
+ # yum install -y krb5-workstation openafs-client openafs-krb5
+
+Test kinit, aklog, and `ls /afs/path` at the console now.
+If OpenAFS does not work at the prompt now, it will not work over HTTP later.
+
+== 2. Install the gateway ==
+Unpack the gateway to a convenient path, for example /home/afsdav,
+referred to as $DAV_BASE in the OS
+
+Create a path for subprocess-writable (lighttpd-writable) tempfiles.
+By default, lighttpd runs as user `nobody`.  Make sure
+this directory is writable by this user.
+
+If you are not at MIT, delete the automount path at $DAV_BASE/srv/mit.
+
+== 3. Build lighttpd ==
+Our webserver needs specific compile flags and a few patches.
+Use the Makefile provided under ./src:
+
+ $ cd src; make
+
+== 4. Add supervisor config ==
+Symlink the provided etc/supervisor.ini file under /etc/supervisor.d
+or use your own process manager to forever run the daemons.
+
+Installation completed!

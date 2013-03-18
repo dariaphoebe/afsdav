@@ -1,0 +1,61 @@
+diff -ur lighttpd-trunk/src/mod_magnet.c lighttpd-trunk/src/mod_magnet.c
+--- lighttpd-trunk/src/mod_magnet.c	2012-11-07 09:24:24.000000000 -0500
++++ lighttpd-trunk/src/mod_magnet.c	2013-03-15 16:16:45.215454308 -0400
+@@ -338,6 +338,22 @@
+ 	return 1;
+ }
+ 
++static int magnet_reqhdr_set(lua_State *L) {
++	connection *con;
++
++	const char *key = luaL_checkstring(L, 2);
++	const char *val = luaL_checkstring(L, 3);
++
++	lua_pushstring(L, "lighty.con");
++	lua_gettable(L, LUA_REGISTRYINDEX);
++	con = lua_touserdata(L, -1);
++	lua_pop(L, 1);
++
++	array_set_key_value(con->request.headers, key, strlen(key), val, strlen(val));
++
++	return 0;
++}
++
+ static int magnet_status_get(lua_State *L) {
+ 	data_integer *di;
+ 	server *srv;
+@@ -392,7 +408,8 @@
+ 		MAGNET_ENV_REQUEST_METHOD,
+ 		MAGNET_ENV_REQUEST_URI,
+ 		MAGNET_ENV_REQUEST_ORIG_URI,
+-		MAGNET_ENV_REQUEST_PROTOCOL
++		MAGNET_ENV_REQUEST_PROTOCOL,
++		MAGNET_ENV_REQUEST_USER
+        	} type;
+ } magnet_env_t;
+ 
+@@ -415,6 +432,7 @@
+ 		{ "request.uri", MAGNET_ENV_REQUEST_URI },
+ 		{ "request.orig-uri", MAGNET_ENV_REQUEST_ORIG_URI },
+ 		{ "request.protocol", MAGNET_ENV_REQUEST_PROTOCOL },
++		{ "request.user", MAGNET_ENV_REQUEST_USER },
+ 
+ 		{ NULL, MAGNET_ENV_UNSET }
+ 	};
+@@ -451,6 +469,7 @@
+ 		buffer_copy_string(srv->tmp_buf, get_http_version_name(con->request.http_version));
+ 		dest = srv->tmp_buf;
+ 		break;
++	case MAGNET_ENV_REQUEST_USER: dest = con->authed_user; break;
+ 
+ 	case MAGNET_ENV_UNSET: break;
+ 	}
+@@ -786,6 +805,8 @@
+ 	lua_newtable(L); /* the meta-table for the request-table     (sp += 1) */
+ 	lua_pushcfunction(L, magnet_reqhdr_get);                  /* (sp += 1) */
+ 	lua_setfield(L, -2, "__index");                           /* (sp -= 1) */
++	lua_pushcfunction(L, magnet_reqhdr_set);                  /* (sp += 1) */
++	lua_setfield(L, -2, "__newindex");                           /* (sp -= 1) */
+ 	lua_setmetatable(L, -2); /* tie the metatable to request     (sp -= 1) */
+ 	lua_setfield(L, -2, "request"); /* content = {}              (sp -= 1) */
+ 

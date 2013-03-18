@@ -1,0 +1,29 @@
+diff -ur lighttpd-trunk/src/mod_proxy_core.c lighttpd-trunk/src/mod_proxy_core.c
+--- lighttpd-trunk/src/mod_proxy_core.c	(revision 2505)
++++ lighttpd-trunk/src/mod_proxy_core.c	(working copy)
+@@ -2107,6 +2107,25 @@
+ #if 0
+ 	if (buffer_is_empty(path)) return HANDLER_GO_ON;
+ #endif
++
++	if (!sess && !buffer_is_empty(con->authed_user)) {
++		buffer *userf = buffer_init_buffer(con->authed_user);
++		char *c;
++		for (c = userf->ptr; *c; c++) {
++			if (*c == '/')
++				*c = '.';
++		}
++		sess = proxy_session_init();
++		if (!sess->sticky_session)
++			sess->sticky_session = buffer_init();
++		buffer_copy_string(sess->sticky_session, "unix:");
++		buffer_append_string(sess->sticky_session, getenv("DAV_BASE"));
++		buffer_append_string(sess->sticky_session, "/run/");
++		buffer_append_string_buffer(sess->sticky_session, userf);
++		buffer_append_string(sess->sticky_session, ".sock");
++		sess->do_x_rewrite_backend = 1;
++	}
++
+ 	if (sess && sess->do_x_rewrite_backend) {
+ 		proxy_backend *backend;
+ 		buffer *sticky_session = sess->sticky_session;

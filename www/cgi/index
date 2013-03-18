@@ -1,0 +1,101 @@
+#!/usr/bin/python
+"""
+WebDAV/AFS Gateway: directory index generator
+"""
+
+import cgi
+
+parent = """<tr><td class="n"><a href="../">Parent Directory</a>/</td><td class="m">&nbsp;</td><td class="s">- &nbsp;</td></tr>"""
+def error_page(txt):
+    return """
+<!doctype html>
+<html>
+<head><title>%s</title></head>
+<body><h1>%s</h1></body></html>""" % (txt, txt)
+
+import os, time, sys, stat, mimetypes
+path = os.environ["REQUEST_URI"]
+npath = os.path.normpath(path)
+tpath = npath + "/"
+if npath[:4] in ("/afs", "/mit"):
+    try:
+        files = os.listdir(path); files.sort()
+    except Exception, e:
+        print "HTTP/1.1 403 Forbidden\r\n\r"
+        print error_page('403 - Forbidden')
+        sys.exit()
+elif npath is "/":
+    files = ("afs", "mit"); parent = ""
+else:
+    print "Location: /\r"
+    print "Content-type: text/html\r\n\r"
+    sys.exit()
+
+print "Content-type: text/html\r\n\r"
+print """<!doctype html>
+<html>
+<head>
+<title>Index of %s</title>
+<link rel="stylesheet" href="/share/style.css"></link>
+<script src="/share/prototype.js" type="text/javascript"></script>
+<script type="text/javascript">var URI = '%s';</script>
+<script src="/share/util.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<div id="index">
+<h2>Index of %s</h2>
+<div id="menu">
+<a id="permissions_menu" class="menu" href="javascript:ui_open('permissions')" style="display:none;">Permissions</a>
+<a id="tokens_menu" class="menu" href="javascript:ui_open('tokens')">Tokens</a>
+</div>
+<div id="index-error"></div>
+<div id="index-list">
+<table summary="Directory Listing" cellpadding="0" cellspacing="0">
+<thead><tr><th class="n">Name</th><th class="m">Last Modified</th><th class="s">Size</th><th class="t">Type</th></tr></thead>
+
+<tbody>
+%s""" % (path, path, path, parent)
+
+stat_fail = False
+for fstep in files:
+#    f = file('/tmp/file.out','a+')
+#    f.write(tpath + fstep + "\n")
+#    f.close()
+    (fmtime,isdir,islink,isfile,fsize,ftype) = [None]*6
+    if not stat_fail:
+        try:
+            fstat = os.lstat(tpath + fstep)
+            islink = stat.S_ISLNK(fstat.st_mode)
+            isdir = stat.S_ISDIR(fstat.st_mode)
+            isfile = not isdir and not islink
+            fsize = fstat.st_size
+            fmtime = time.localtime(fstat.st_mtime)
+            #isfile = stat.S_ISFILE(fstat.st_mode)
+        except os.error, e:
+            print "<script language=javascript>index_error('Error listing", fstep,
+            print "in this directory:", e.strerror, "(error " + str(e.errno) + ")');</script>"
+            stat_fail = True
+    try:
+        ftype = mimetypes.guess_type(tpath + fstep)[0]
+    finally: pass
+    sizes = ['', 'K', 'M', 'G']
+    while fsize > 1024 and len(sizes) > 1:
+        fsize /= 1024.0
+        del sizes[0]
+    print """<tr><td class="n"><a href="%s">%s</a>%s</td><td class="m">%s</td><td class="s">%s &nbsp;</td><td class="t">%s</td></tr>""" \
+        % (fstep + (isdir and "/" or ""),
+            fstep,
+            isdir and "/" or "",
+            fmtime and time.strftime("%a, %d %b %Y %X %Z",fmtime) or "",
+            (isdir or fsize is None) and "-" or (
+                not len(sizes[0]) and ("%d" % fsize)
+                or ("%.1f%s" % (fsize, sizes[0]))),
+            ftype or (isdir and "Directory") or (islink and "Symbolic Link") or "")
+
+print '</tbody></table></div>' #index-list
+print '</div>' #index
+print '<pre>Authenticated as %s</pre>' % os.environ['DAV_USER']
+print """<div class="popup" id="p_0" style="display:none;"><a class="button close" href="javascript:ui_close('p')">close</a><div id="p_1"></div></div>"""
+print '</div>' #content
+print '</body></html>'

@@ -1,0 +1,16 @@
+#!/usr/bin/python
+
+import os
+import urllib
+import subprocess
+
+qs = os.environ.get('QUERY_STRING')
+print "Content-type: text/plain\r\n\r\n",
+if qs:
+    qs = qs.split('&')
+    qsd = dict([e.split('=') for e in qs])
+    qsd = dict([(e[0], urllib.unquote(e[1])) for e in qsd.items()])
+    if qsd.get('path'):
+        p = subprocess.Popen(['/usr/bin/fs', 'la', qsd['path']], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p.wait()
+        print str(p.stdout.read())

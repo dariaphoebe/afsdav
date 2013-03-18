@@ -1,0 +1,18 @@
+=Server=
+
+Many clients will Negotiate (SPNEGO) but will not delegate tickets.  This
+renders kerberos authentication useless.  Tickets must be delegated to request
+AFS tokens on behalf of the principal.
+
+=Clients=
+
+- Firefox
+-- configure network.negotiate-auth.trusted-uris
+         and network.negotiate-auth.delegation-uris
+-- no known issues
+
+- OS X (Connect to Server)
+-- no known issues, tested 10.4+
+
+- cadaver
+-- no known issues

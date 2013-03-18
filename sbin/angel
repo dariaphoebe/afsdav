@@ -1,0 +1,64 @@
+#!/usr/bin/python
+
+import afsdav, os
+from glob import glob
+def cleanup():
+    for elt in glob(afsdav.RUN+'/*.pid'):
+        try: os.kill(int(file(elt).read().strip()), 9)
+        except: pass
+        for k in ('err', 'k5', 'lock', 'sock', 'tok'):
+            try: os.unlink(elt[:-3]+k)
+            except: pass
+        try: os.unlink(elt)
+        except: pass
+    for elt in glob(afsdav.RUN+'/cache/*'):
+        try: os.unlink(elt)
+        except: pass
+cleanup()
+
+from afsdav import ticket_start
+
+class procs(object):
+    def __init__(self):
+        self.proc = {}
+    def __del__(self):
+        for k5 in self.proc:
+            self.stop(k5)
+    def __contains__(self, k):
+        return k in self.proc
+    def start(self, k5, user):
+        if k5 in self.proc: return
+        self.proc[k5] = ticket_start(user, k5)
+    def stop(self, k5):
+        if not k5 in self.proc: return
+        try:
+            self.proc[k5].kill()
+            del self.proc[k5]
+        except: pass
+        for elt in glob(k[:-2]+'*'):
+            try: os.unlink(elt)
+            except: pass
+
+procs = procs()
+
+import pyinotify, asyncore
+wm = pyinotify.WatchManager()
+mask = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
+
+from os.path import basename
+
+class EventHandler(pyinotify.ProcessEvent):
+    def process_IN_CREATE(self, event):
+        self.process_IN_MODIFY(event)
+
+    def process_IN_DELETE(self, event):
+        procs.stop(event.pathname)
+
+    def process_IN_MODIFY(self, event):
+        if event.pathname[-3:] != '.k5': return
+        k5 = event.pathname
+        procs.start(k5, basename(k5)[:-3])
+
+notifier = pyinotify.AsyncNotifier(wm, EventHandler())
+wm.add_watch(afsdav.RUN, mask, rec=True)
+asyncore.loop()

@@ -1,0 +1,49 @@
+a, a:active {text-decoration: none; color: blue;}
+a:visited {color: #48468F;}
+a:hover, a:focus {text-decoration: underline; color: red;}
+html {margin: 0; padding: 0 0 0 8px}
+body {margin: 0; padding: 0; background-color: #F5F5F5;}
+h2 {margin-bottom: 12px;}
+#index-list table {margin-left: 12px;}
+#index-list th {font-family: "Courier New", Courier, monospace; font-size: 10pt; text-align: left;}
+#index-list td {font-family: "Courier New", Courier, monospace; font-size: 10pt; text-align: left;}
+#index-list th {font-weight: bold; padding-right: 14px; padding-bottom: 3px;}
+#index-list td {padding-right: 14px;}
+#index-list td.s {text-align: right;}
+div#index-list { background-color: white; border-top: 1px solid #666; border-bottom: 1px solid #666; padding-top: 10px; padding-bottom: 14px;}
+div#index-error { font-size: 10pt; font-style: italic; margin: 10px; }
+div#index-error>ul { margin: 0; padding: 0; list-style: none; }
+div.foot { font-family: "Courier New", Courier, monospace; font-size: 10pt; color: #787878; padding-top: 4px;}
+
+div#menu {
+    border-left: 1px solid #666;
+    position: absolute;
+    top: -1px; right: 10px;
+    background-color: white;
+}
+div#menu a {
+    color: black;
+    font-size: 10pt;
+    line-height: 25px;
+    padding: 5px 10px 5px 10px;
+    border-bottom: 1px solid #666;
+    border-right: 1px solid #666;
+}
+div#menu a:hover { background-color: silver; text-decoration: none; }
+div#menu a:focus { background-color: silver; text-decoration: none; }
+.greyout { filter: alpha(opacity=30); -moz-opacity: 0.3; }
+
+div.popup {
+    position: absolute;
+    padding: 10px 25px;
+    top: 100px;
+    left: 150px;
+    border: 1px solid black;
+    z-index: 9;
+    background-color: white;
+}
+
+div.popup .close {
+    position: absolute;
+    top: 10px; right: 10px;
+}
