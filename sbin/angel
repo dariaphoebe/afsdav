@@ -43,17 +43,18 @@ procs = procs()
 
 import pyinotify, asyncore
 wm = pyinotify.WatchManager()
-mask = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY
+mask = pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MODIFY | pyinotify.IN_MOVED_TO
 
 from os.path import basename
 
 class EventHandler(pyinotify.ProcessEvent):
-    def process_IN_CREATE(self, event):
-        self.process_IN_MODIFY(event)
-
     def process_IN_DELETE(self, event):
         procs.stop(event.pathname)
 
+    def process_IN_CREATE(self, event):
+        self.process_IN_MODIFY(event)
+    def process_IN_MOVED_TO(self, event):
+        self.process_IN_MODIFY(event)
     def process_IN_MODIFY(self, event):
         if event.pathname[-3:] != '.k5': return
         k5 = event.pathname

@@ -1,5 +1,17 @@
 #!/bin/bash
 
+. /etc/sysconfig/network
+echo "var.HOSTNAME = \"$HOSTNAME\""
+
+if [ "X$DAV_USERF" == "X" ]; then
+    if [ -f $DAV_BASE/etc/krb5.keytab ]; then
+        echo 'auth.backend.gssapi.keytab = env.DAV_BASE + "/etc/krb5.keytab"'
+        echo 'auth.backend.gssapi.spnego = "enable"'
+    else
+        echo 'auth.backend.gssapi.spnego = "disable"'
+    fi
+fi
+
 if [ "$DAV_DEV" == "1" ]; then
     echo "server.modules += ( \"mod_status\", \"mod_accesslog\" )"
     if [ "X$DAV_USERF" == "X" ]; then
