@@ -3,7 +3,7 @@ AFS WebDAV Gateway: PAG sandbox, other krb5 utils
 """
 
 from os.path import abspath, dirname
-BASE = abspath(dirname(__file__)+'/../')
+BASE = abspath(abspath(dirname(__file__))+'/../')
 RUN = BASE + '/run'
 
 import os, signal
@@ -43,6 +43,18 @@ def aklog(cfile, cells=['athena.mit.edu', 'sipb.mit.edu']):
     Popen(['/usr/bin/aklog', '-noprdb'] + cells, env={'KRB5CCNAME': cfile}, close_fds=True).wait()
     return True
 
+from time import strptime, gmtime
+from calendar import timegm
+strptoken = lambda s: timegm(strptime(str(gmtime().tm_year) + ' ' + s, '%Y %b %d %H:%M'))
+
+def tokens_until(f):
+    r = []
+    for line in file(f).readlines():
+        line = line.strip()
+        if 'Expires' in line:
+            r += [strptoken(line.split('[Expires ', 1)[-1][:-1])]
+    return r and min(r) or 0
+
 def ticket_start(username, ticket):
     # prepare env
     usernamef = username.replace('/', '.')
@@ -67,10 +79,14 @@ def ticket_start(username, ticket):
         f_pid = file('%s/%s.pid' % (RUN, usernamef), 'w')
         f_pid.write('%d' % p.pid)
         f_pid.close()
+
+        ttl_p = '%s/%s.ttl' % (RUN, usernamef)
+        tok_p = '%s/%s.tok' % (RUN, usernamef)
         p_tok = Popen(['/usr/bin/tokens'], stdout=PIPE)
-        f_tok = file('%s/%s.tok' % (RUN, usernamef), 'w')
-        f_tok.write(p_tok.stdout.read())
-        f_tok.close()
+        file(tok_p, 'w').write(p_tok.stdout.read())
+        p_tok.stdout.close()
+        p_tok.wait()
+        file(ttl_p, 'w').write(str(tokens_until(tok_p)))
         stat_userdir(username)
         return p
 

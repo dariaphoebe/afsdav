@@ -3,10 +3,10 @@
 import afsdav, os
 from glob import glob
 def cleanup():
-    for elt in glob(afsdav.RUN+'/*.pid'):
+    for elt in glob(afsdav.RUN+'/*.sock'):
         try: os.kill(int(file(elt).read().strip()), 9)
         except: pass
-        for k in ('err', 'k5', 'lock', 'sock', 'tok'):
+        for k in ('err', 'k5', 'lock', 'pid', 'sock', 'tok', 'ttl'):
             try: os.unlink(elt[:-3]+k)
             except: pass
         try: os.unlink(elt)
@@ -16,11 +16,17 @@ def cleanup():
         except: pass
 cleanup()
 
+from threading import Thread
 from afsdav import ticket_start
+from time import sleep, time
 
 class procs(object):
     def __init__(self):
         self.proc = {}
+        self._ttl = {}
+        self._gcT = Thread(target=self._gc)
+        self._gcT.setDaemon(1)
+        self._gcT.start()
     def __del__(self):
         for k5 in self.proc:
             self.stop(k5)
@@ -29,15 +35,26 @@ class procs(object):
     def start(self, k5, user):
         if k5 in self.proc: return
         self.proc[k5] = ticket_start(user, k5)
+        self._ttl[k5] = int(file(k5[:-2]+'ttl').read())
     def stop(self, k5):
         if not k5 in self.proc: return
+        for elt in glob(k[:-2]+'*'):
+            try: os.unlink(elt)
+            except: pass
         try:
             self.proc[k5].kill()
             del self.proc[k5]
         except: pass
-        for elt in glob(k[:-2]+'*'):
-            try: os.unlink(elt)
-            except: pass
+    def _gc(self):
+        while True:
+            sleep(3)
+            now = int(time())
+            try:
+                for k, ttl in list(self._ttl.items()):
+                    if ttl < now:
+                        self.stop(k)
+            except Exception, e:
+                print repr(e)
 
 procs = procs()
 
