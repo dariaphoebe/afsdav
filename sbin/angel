@@ -1,8 +1,10 @@
 #!/usr/bin/python
 
 import afsdav, os
+from subprocess import call
 from glob import glob
 def cleanup():
+    call(['pkill', '-9', '-f', 'backend'])
     for elt in glob(afsdav.RUN+'/*.sock'):
         try: os.kill(int(file(elt).read().strip()), 9)
         except: pass
@@ -20,43 +22,48 @@ from threading import Thread
 from afsdav import ticket_start
 from time import sleep, time
 
-class procs(object):
+class Angel(object):
     def __init__(self):
         self.proc = {}
         self._ttl = {}
-        self._gcT = Thread(target=self._gc)
-        self._gcT.setDaemon(1)
-        self._gcT.start()
+        self._T = Thread(target=self._run)
+        self._T.start()
+        self._dead = False
+
+    def __contains__(self, k): return k in self.proc
     def __del__(self):
+        self._dead = True
         for k5 in self.proc:
             self.stop(k5)
-    def __contains__(self, k):
-        return k in self.proc
+
     def start(self, k5, user):
         if k5 in self.proc: return
         self.proc[k5] = ticket_start(user, k5)
         self._ttl[k5] = int(file(k5[:-2]+'ttl').read())
+
     def stop(self, k5):
         if not k5 in self.proc: return
-        for elt in glob(k[:-2]+'*'):
+        p = self.proc[k5]
+        del self.proc[k5]
+        try:
+            p.kill()
+            p.wait()
+        except: pass
+        for elt in glob(k5[:-2]+'*'):
             try: os.unlink(elt)
             except: pass
-        try:
-            self.proc[k5].kill()
-            del self.proc[k5]
-        except: pass
-    def _gc(self):
-        while True:
-            sleep(3)
-            now = int(time())
-            try:
-                for k, ttl in list(self._ttl.items()):
-                    if ttl < now:
-                        self.stop(k)
-            except Exception, e:
-                print repr(e)
 
-procs = procs()
+    def _run(self):
+        while not self._dead:
+            sleep(3)
+            self._gc()
+    def _gc(self):
+        now = int(time())
+        for k, ttl in list(self._ttl.items()):
+            if ttl < now:
+                self.stop(k)
+
+angel = Angel()
 
 import pyinotify, asyncore
 wm = pyinotify.WatchManager()
@@ -66,7 +73,7 @@ from os.path import basename
 
 class EventHandler(pyinotify.ProcessEvent):
     def process_IN_DELETE(self, event):
-        procs.stop(event.pathname)
+        angel.stop(event.pathname)
 
     def process_IN_CREATE(self, event):
         self.process_IN_MODIFY(event)
@@ -75,7 +82,7 @@ class EventHandler(pyinotify.ProcessEvent):
     def process_IN_MODIFY(self, event):
         if event.pathname[-3:] != '.k5': return
         k5 = event.pathname
-        procs.start(k5, basename(k5)[:-3])
+        angel.start(k5, basename(k5)[:-3])
 
 notifier = pyinotify.AsyncNotifier(wm, EventHandler())
 wm.add_watch(afsdav.RUN, mask, rec=True)

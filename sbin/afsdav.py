@@ -80,12 +80,13 @@ def ticket_start(username, ticket):
         f_pid.write('%d' % p.pid)
         f_pid.close()
 
-        ttl_p = '%s/%s.ttl' % (RUN, usernamef)
         tok_p = '%s/%s.tok' % (RUN, usernamef)
         p_tok = Popen(['/usr/bin/tokens'], stdout=PIPE)
         file(tok_p, 'w').write(p_tok.stdout.read())
         p_tok.stdout.close()
         p_tok.wait()
+
+        ttl_p = '%s/%s.ttl' % (RUN, usernamef)
         file(ttl_p, 'w').write(str(tokens_until(tok_p)))
         stat_userdir(username)
         return p
